@@ -20,9 +20,11 @@
 
 /obj/item/mod/module/springlock/on_suit_activation()
 	RegisterSignal(mod.wearer, COMSIG_ATOM_EXPOSE_REAGENTS, PROC_REF(on_wearer_exposed))
+	RegisterSignal(mod.wearer, COMSIG_GASMIX_MERGED, PROC_REF(on_wearer_exposed_gas))
 
 /obj/item/mod/module/springlock/on_suit_deactivation(deleting = FALSE)
 	UnregisterSignal(mod.wearer, COMSIG_ATOM_EXPOSE_REAGENTS)
+	UnregisterSignal(mod.wearer, COMSIG_GASMIX_MERGED)
 
 ///Signal fired when wearer is exposed to reagents
 /obj/item/mod/module/springlock/proc/on_wearer_exposed(atom/source, list/reagents, datum/reagents/source_reagents, methods, volume_modifier, show_message)
@@ -30,6 +32,17 @@
 
 	if(!(methods & (VAPOR|PATCH|TOUCH)) || set_off || mod.wearer.stat == DEAD)
 		return //remove non-touch reagent exposure
+	snap_signal()
+
+/obj/item/mod/module/springlock/proc/on_wearer_exposed_gas()
+	SIGNAL_HANDLER
+	var/turf/t = loc.loc
+	var/datum/gas_mixture/air = t.return_air()
+	if(!(air.gases[/datum/gas/water_vapor] && (air.gases[/datum/gas/water_vapor][MOLES]) >= 5) || set_off || mod.wearer.stat == DEAD)
+		return //remove non-touch reagent exposure
+	snap_signal()
+
+/obj/item/mod/module/springlock/proc/snap_signal()
 	to_chat(mod.wearer, span_danger("[src] makes an ominous click sound..."))
 	playsound(src, 'sound/items/modsuit/springlock.ogg', 75, TRUE)
 	addtimer(CALLBACK(src, PROC_REF(snap_shut)), rand(3 SECONDS, 5 SECONDS))
